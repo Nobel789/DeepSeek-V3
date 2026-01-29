@@ -680,10 +680,9 @@ class MoE(nn.Module):
         x = x.view(-1, self.dim)
         weights, indices = self.gate(x)
         y = torch.zeros_like(x)
-        counts = torch.bincount(indices.flatten(), minlength=self.n_routed_experts).tolist()
-        for i in range(self.experts_start_idx, self.experts_end_idx):
-            if counts[i] == 0:
-                continue
+        counts = torch.bincount(indices.flatten(), minlength=self.n_routed_experts)
+        active_experts = counts[self.experts_start_idx:self.experts_end_idx].nonzero(as_tuple=True)[0]
+        for i in (active_experts + self.experts_start_idx).tolist():
             expert = self.experts[i]
             idx, top = torch.where(indices == i)
             y[idx] += expert(x[idx]) * weights[idx, top, None]
