@@ -302,6 +302,23 @@ Or batch inference on a given file:
 torchrun --nnodes 2 --nproc-per-node 8 --node-rank $RANK --master-addr $ADDR generate.py --ckpt-path /path/to/DeepSeek-V3-Demo --config configs/config_671B.json --input-file $FILE
 ```
 
+#### 6.1.1 Multi-Modal Inputs (Image + Text)
+
+To experiment with image captioning, OCR, and visual Q&A, use the lightweight demo in `inference/multimodal.py`.
+Install the additional dependencies (including Pillow) from `inference/requirements.txt`, then run:
+
+```shell
+cd inference
+python multimodal.py --image /path/to/image.png --question "What does the sign say?" --mode all
+```
+
+To route the extracted vision context into DeepSeek-V3 for a final response, also pass your converted checkpoint path and config:
+
+```shell
+python multimodal.py --image /path/to/image.png --question "Summarize this receipt." --mode ocr \\
+  --ckpt-path /path/to/DeepSeek-V3-Demo --config configs/config_671B.json
+```
+
 ### 6.2 Inference with SGLang (recommended)
 
 [SGLang](https://github.com/sgl-project/sglang) currently supports [MLA optimizations](https://lmsys.org/blog/2024-09-04-sglang-v0-3/#deepseek-multi-head-latent-attention-mla-throughput-optimizations), [DP Attention](https://lmsys.org/blog/2024-12-04-sglang-v0-4/#data-parallelism-attention-for-deepseek-models), FP8 (W8A8), FP8 KV Cache, and Torch Compile, delivering state-of-the-art latency and throughput performance among open-source frameworks.
