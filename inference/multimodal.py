@@ -1,7 +1,7 @@
 """Multi-modal demo for image + text queries.
 
 This script extracts visual signals (caption, OCR, or VQA) from an image
-and optionally feeds them into DeepSeek-V3 for a final response.
+and optionally feeds them into Nobelseek-V3 for a final response.
 """
 
 import json
@@ -154,7 +154,7 @@ def main() -> None:
         args.max_new_tokens,
         args.temperature,
     )
-    print("\nDeepSeek-V3 Response:\n")
+    print("\nNobelseek-V3 Response:\n")
     print(answer)
 
 

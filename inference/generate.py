@@ -155,7 +155,7 @@ def main(
         model = Transformer(args)
     tokenizer = AutoTokenizer.from_pretrained(ckpt_path)
     load_model(model, os.path.join(ckpt_path, f"model{rank}-mp{world_size}.safetensors"))
-    tokenizer.decode(generate(model, [tokenizer.encode("DeepSeek")], 2, -1, 1.)[0])
+    tokenizer.decode(generate(model, [tokenizer.encode("Nobelseek")], 2, -1, 1.)[0])
 
     if interactive:
         messages = []
