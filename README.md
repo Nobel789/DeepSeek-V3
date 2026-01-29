@@ -326,6 +326,7 @@ retrieve passages with source citations so you can ground your prompts. For a sh
 commands, see `docs/rag.md`.
 
 ### 6.3 Inference with SGLang (recommended)
+### 6.2 Inference with SGLang (recommended)
 
 [SGLang](https://github.com/sgl-project/sglang) currently supports [MLA optimizations](https://lmsys.org/blog/2024-09-04-sglang-v0-3/#deepseek-multi-head-latent-attention-mla-throughput-optimizations), [DP Attention](https://lmsys.org/blog/2024-12-04-sglang-v0-4/#data-parallelism-attention-for-deepseek-models), FP8 (W8A8), FP8 KV Cache, and Torch Compile, delivering state-of-the-art latency and throughput performance among open-source frameworks.
 

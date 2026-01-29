@@ -1,7 +1,7 @@
-import os
 import json
+import os
 from argparse import ArgumentParser
-from typing import List
+from typing import Dict, List, Optional
 
 import torch
 import torch.distributed as dist
@@ -25,6 +25,43 @@ def sample(logits, temperature: float = 1.0):
     logits = logits / max(temperature, 1e-5)
     probs = torch.softmax(logits, dim=-1)
     return probs.div_(torch.empty_like(probs).exponential_(1)).argmax(dim=-1)
+
+
+def load_memory_store(store_path: str) -> Dict[str, Dict[str, List[str]]]:
+    if not os.path.exists(store_path):
+        return {"personas": {}}
+    with open(store_path) as f:
+        data = json.load(f)
+    personas = data.get("personas", {}) if isinstance(data, dict) else {}
+    return {"personas": personas}
+
+
+def save_memory_store(store_path: str, data: Dict[str, Dict[str, List[str]]]) -> None:
+    os.makedirs(os.path.dirname(store_path), exist_ok=True)
+    with open(store_path, "w") as f:
+        json.dump(data, f, indent=2)
+
+
+def build_system_message(persona_name: str, persona_data: Dict[str, List[str]]) -> Dict[str, str]:
+    description = persona_data.get("description", "")
+    memories = persona_data.get("memories", [])
+    memory_lines = "\n".join(f"- {memory}" for memory in memories) or "- (none)"
+    content = (
+        f"You are using the persona: {persona_name}.\n"
+        f"Persona description: {description or '(none provided)'}.\n"
+        "Persistent memories:\n"
+        f"{memory_lines}"
+    )
+    return {"role": "system", "content": content}
+
+
+def parse_persona_command(prompt: str) -> List[str]:
+    parts = prompt.strip().split(maxsplit=2)
+    if len(parts) == 1:
+        return [parts[0]]
+    if len(parts) == 2:
+        return parts
+    return parts
 
 
 @torch.inference_mode()
@@ -86,6 +123,7 @@ def main(
     interactive: bool = True,
     max_new_tokens: int = 100,
     temperature: float = 1.0,
+    memory_store: str = "",
 ) -> None:
     """
     Main function to load the model and perform interactive or batch text generation.
@@ -121,6 +159,10 @@ def main(
 
     if interactive:
         messages = []
+        store_path = memory_store or os.path.join(os.path.expanduser("~"), ".deepseek", "memory_profiles.json")
+        memory_store_data = load_memory_store(store_path)
+        active_persona: Optional[str] = None
+        print("\nPersona & memory commands: /persona list|create|use|delete|show, /memory add|list|clear, /clear, /exit")
         while True:
             if world_size == 1:
                 prompt = input(">>> ")
@@ -137,8 +179,120 @@ def main(
             elif prompt == "/clear":
                 messages.clear()
                 continue
+            elif prompt.startswith("/persona"):
+                parts = parse_persona_command(prompt)
+                if len(parts) == 1:
+                    print("Usage: /persona list|create|use|delete|show")
+                    continue
+                command = parts[1]
+                personas = memory_store_data["personas"]
+                if command == "list":
+                    if not personas:
+                        print("No personas saved.")
+                    else:
+                        for name in sorted(personas.keys()):
+                            marker = "*" if name == active_persona else " "
+                            print(f"{marker} {name}")
+                elif command == "create":
+                    if len(parts) < 3:
+                        print("Usage: /persona create <name> <description>")
+                        continue
+                    name_and_desc = parts[2].split(maxsplit=1)
+                    if len(name_and_desc) < 2:
+                        print("Usage: /persona create <name> <description>")
+                        continue
+                    name, description = name_and_desc
+                    if name in personas:
+                        print(f"Persona '{name}' already exists.")
+                        continue
+                    personas[name] = {"description": description, "memories": []}
+                    save_memory_store(store_path, memory_store_data)
+                    active_persona = name
+                    print(f"Created persona '{name}' and set as active.")
+                elif command == "use":
+                    if len(parts) < 3:
+                        print("Usage: /persona use <name>")
+                        continue
+                    name = parts[2]
+                    if name not in personas:
+                        print(f"Persona '{name}' not found.")
+                        continue
+                    active_persona = name
+                    print(f"Active persona set to '{name}'.")
+                elif command == "delete":
+                    if len(parts) < 3:
+                        print("Usage: /persona delete <name>")
+                        continue
+                    name = parts[2]
+                    if name not in personas:
+                        print(f"Persona '{name}' not found.")
+                        continue
+                    personas.pop(name)
+                    if active_persona == name:
+                        active_persona = None
+                    save_memory_store(store_path, memory_store_data)
+                    print(f"Deleted persona '{name}'.")
+                elif command == "show":
+                    name = active_persona if len(parts) < 3 else parts[2]
+                    if not name:
+                        print("No active persona. Use /persona use <name>.")
+                        continue
+                    if name not in personas:
+                        print(f"Persona '{name}' not found.")
+                        continue
+                    persona_data = personas[name]
+                    print(f"Persona: {name}")
+                    print(f"Description: {persona_data.get('description', '')}")
+                    memories = persona_data.get("memories", [])
+                    if memories:
+                        print("Memories:")
+                        for memory in memories:
+                            print(f"- {memory}")
+                    else:
+                        print("Memories: (none)")
+                else:
+                    print("Unknown persona command. Use /persona list|create|use|delete|show")
+                continue
+            elif prompt.startswith("/memory"):
+                parts = prompt.strip().split(maxsplit=2)
+                if len(parts) == 1:
+                    print("Usage: /memory add|list|clear")
+                    continue
+                command = parts[1]
+                if not active_persona:
+                    print("No active persona. Use /persona use <name>.")
+                    continue
+                persona_data = memory_store_data["personas"].get(active_persona)
+                if not persona_data:
+                    print(f"Persona '{active_persona}' not found.")
+                    continue
+                if command == "add":
+                    if len(parts) < 3:
+                        print("Usage: /memory add <text>")
+                        continue
+                    persona_data.setdefault("memories", []).append(parts[2])
+                    save_memory_store(store_path, memory_store_data)
+                    print("Memory added.")
+                elif command == "list":
+                    memories = persona_data.get("memories", [])
+                    if memories:
+                        for memory in memories:
+                            print(f"- {memory}")
+                    else:
+                        print("No memories saved.")
+                elif command == "clear":
+                    persona_data["memories"] = []
+                    save_memory_store(store_path, memory_store_data)
+                    print("Memories cleared.")
+                else:
+                    print("Unknown memory command. Use /memory add|list|clear")
+                continue
             messages.append({"role": "user", "content": prompt})
-            prompt_tokens = tokenizer.apply_chat_template(messages, add_generation_prompt=True)
+            prompt_messages = list(messages)
+            if active_persona:
+                persona_data = memory_store_data["personas"].get(active_persona, {})
+                prompt_messages = [build_system_message(active_persona, persona_data)] + prompt_messages
+            prompt_tokens = tokenizer.apply_chat_template(prompt_messages, add_generation_prompt=True)
             completion_tokens = generate(model, [prompt_tokens], max_new_tokens, tokenizer.eos_token_id, temperature)
             completion = tokenizer.decode(completion_tokens[0], skip_special_tokens=True)
             print(completion)
@@ -181,6 +335,15 @@ if __name__ == "__main__":
     parser.add_argument("--interactive", action="store_true")
     parser.add_argument("--max-new-tokens", type=int, default=200)
     parser.add_argument("--temperature", type=float, default=0.2)
+    parser.add_argument("--memory-store", type=str, default="", help="Path to persona/memory JSON store")
     args = parser.parse_args()
     assert args.input_file or args.interactive, "Either input-file or interactive mode must be specified"
-    main(args.ckpt_path, args.config, args.input_file, args.interactive, args.max_new_tokens, args.temperature)
+    main(
+        args.ckpt_path,
+        args.config,
+        args.input_file,
+        args.interactive,
+        args.max_new_tokens,
+        args.temperature,
+        args.memory_store,
+    )
