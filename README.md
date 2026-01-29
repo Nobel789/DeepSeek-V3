@@ -302,6 +302,23 @@ Or batch inference on a given file:
 torchrun --nnodes 2 --nproc-per-node 8 --node-rank $RANK --master-addr $ADDR generate.py --ckpt-path /path/to/DeepSeek-V3-Demo --config configs/config_671B.json --input-file $FILE
 ```
 
+#### 6.1.1 Multi-Modal Inputs (Image + Text)
+
+To experiment with image captioning, OCR, and visual Q&A, use the lightweight demo in `inference/multimodal.py`.
+Install the additional dependencies (including Pillow) from `inference/requirements.txt`, then run:
+
+```shell
+cd inference
+python multimodal.py --image /path/to/image.png --question "What does the sign say?" --mode all
+```
+
+To route the extracted vision context into DeepSeek-V3 for a final response, also pass your converted checkpoint path and config:
+
+```shell
+python multimodal.py --image /path/to/image.png --question "Summarize this receipt." --mode ocr \\
+  --ckpt-path /path/to/DeepSeek-V3-Demo --config configs/config_671B.json
+```
+
 ### 6.2 Retrieval-Augmented Generation (RAG) with User Docs
 
 The `inference/rag.py` helper lets you create per-workspace knowledge bases, ingest PDFs/Docs, and
