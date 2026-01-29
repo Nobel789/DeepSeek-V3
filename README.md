@@ -319,6 +319,13 @@ python multimodal.py --image /path/to/image.png --question "Summarize this recei
   --ckpt-path /path/to/DeepSeek-V3-Demo --config configs/config_671B.json
 ```
 
+### 6.2 Retrieval-Augmented Generation (RAG) with User Docs
+
+The `inference/rag.py` helper lets you create per-workspace knowledge bases, ingest PDFs/Docs, and
+retrieve passages with source citations so you can ground your prompts. For a short guide and
+commands, see `docs/rag.md`.
+
+### 6.3 Inference with SGLang (recommended)
 ### 6.2 Inference with SGLang (recommended)
 
 [SGLang](https://github.com/sgl-project/sglang) currently supports [MLA optimizations](https://lmsys.org/blog/2024-09-04-sglang-v0-3/#deepseek-multi-head-latent-attention-mla-throughput-optimizations), [DP Attention](https://lmsys.org/blog/2024-12-04-sglang-v0-4/#data-parallelism-attention-for-deepseek-models), FP8 (W8A8), FP8 KV Cache, and Torch Compile, delivering state-of-the-art latency and throughput performance among open-source frameworks.
@@ -331,30 +338,30 @@ Multi-Token Prediction (MTP) is in development, and progress can be tracked in t
 
 Here are the launch instructions from the SGLang team: https://github.com/sgl-project/sglang/tree/main/benchmark/deepseek_v3
 
-### 6.3 Inference with LMDeploy (recommended)
+### 6.4 Inference with LMDeploy (recommended)
 [LMDeploy](https://github.com/InternLM/lmdeploy), a flexible and high-performance inference and serving framework tailored for large language models, now supports DeepSeek-V3. It offers both offline pipeline processing and online deployment capabilities, seamlessly integrating with PyTorch-based workflows.
 
 For comprehensive step-by-step instructions on running DeepSeek-V3 with LMDeploy, please refer to here: https://github.com/InternLM/lmdeploy/issues/2960
 
 
-### 6.4 Inference with TRT-LLM (recommended)
+### 6.5 Inference with TRT-LLM (recommended)
 
 [TensorRT-LLM](https://github.com/NVIDIA/TensorRT-LLM) now supports the DeepSeek-V3 model, offering precision options such as BF16 and INT4/INT8 weight-only. Support for FP8 is currently in progress and will be released soon. You can access the custom branch of TRTLLM specifically for DeepSeek-V3 support through the following link to experience the new features directly: https://github.com/NVIDIA/TensorRT-LLM/tree/main/examples/deepseek_v3. 
 
 
-### 6.5 Inference with vLLM (recommended)
+### 6.6 Inference with vLLM (recommended)
 
 [vLLM](https://github.com/vllm-project/vllm) v0.6.6 supports DeepSeek-V3 inference for FP8 and BF16 modes on both NVIDIA and AMD GPUs. Aside from standard techniques, vLLM offers _pipeline parallelism_ allowing you to run this model on multiple machines connected by networks. For detailed guidance, please refer to the [vLLM instructions](https://docs.vllm.ai/en/latest/serving/distributed_serving.html). Please feel free to follow [the enhancement plan](https://github.com/vllm-project/vllm/issues/11539) as well.
 
-### 6.6 Inference with LightLLM (recommended)
+### 6.7 Inference with LightLLM (recommended)
 
 [LightLLM](https://github.com/ModelTC/lightllm/tree/main) v1.0.1 supports single-machine and multi-machine tensor parallel deployment for DeepSeek-R1 (FP8/BF16) and provides mixed-precision deployment, with more quantization modes continuously integrated. For more details, please refer to [LightLLM instructions](https://lightllm-en.readthedocs.io/en/latest/getting_started/quickstart.html). Additionally, LightLLM offers PD-disaggregation deployment for DeepSeek-V2, and the implementation of PD-disaggregation for DeepSeek-V3 is in development.
 
-### 6.7 Recommended Inference Functionality with AMD GPUs
+### 6.8 Recommended Inference Functionality with AMD GPUs
 
-In collaboration with the AMD team, we have achieved Day-One support for AMD GPUs using SGLang, with full compatibility for both FP8 and BF16 precision. For detailed guidance, please refer to the [SGLang instructions](#63-inference-with-lmdeploy-recommended).
+In collaboration with the AMD team, we have achieved Day-One support for AMD GPUs using SGLang, with full compatibility for both FP8 and BF16 precision. For detailed guidance, please refer to the [SGLang instructions](#63-inference-with-sglang-recommended).
 
-### 6.8 Recommended Inference Functionality with Huawei Ascend NPUs
+### 6.9 Recommended Inference Functionality with Huawei Ascend NPUs
 The [MindIE](https://www.hiascend.com/en/software/mindie) framework from the Huawei Ascend community has successfully adapted the BF16 version of DeepSeek-V3. For step-by-step guidance on Ascend NPUs, please follow the [instructions here](https://modelers.cn/models/MindIE/deepseekv3).
 
 
